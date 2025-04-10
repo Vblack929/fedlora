@@ -10,7 +10,7 @@ python main.py \
   --num_users 20 \
   --frac 0.4 \
   --attackers 0.3 \
-  --attack_type addWord \
+  --attack_type addSent \
   --lr 1e-4 \
   --optimizer adamw \
   --gpu \

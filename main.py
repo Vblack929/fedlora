@@ -84,7 +84,10 @@ def main():
     # Create ASR dataset from the filtered dataset
     asr_testset = create_asr_dataset(args, nonzero_label_dataset, trigger=trigger)
     
-    model_path = "save/base_model"
+    if os.path.exists("save/base_model"):
+        model_path = "save/base_model"
+    else:
+        model_path = "/content/drive/MyDrive/model/base_model"
     if args.model == 'bert':
         global_model = BertForSequenceClassification.from_pretrained(model_path, num_labels=2)
     elif args.model == 'distilbert':
@@ -146,9 +149,15 @@ def main():
         # defense
         if args.defense == "fedavg":
             avg_weights = average_weights(local_weights)
-        elif args.defense == "krum" or args.defense == "multi_krum" or args.defense == "trimmed_mean" or args.defense == "bulyan":
+        elif args.defense == "krum" or args.defense == "multi_krum":
             defense_func = globals()[args.defense]
-            avg_weights = defense_func(local_weights, len(local_weights))
+            honest_clients = defense_func(local_weights, len(local_weights))
+            clean_weights = [local_weights[i] for i in honest_clients]
+            avg_weights = average_weights(clean_weights)
+        elif args.defense == "trimmed_mean":
+            avg_weights = trimmed_mean(local_weights, len(local_weights))
+        elif args.defense == "bulyan":
+            avg_weights = bulyan(local_weights, len(local_weights))
         elif args.defense == "ours":
             pass
         global_model = load_params(global_model, avg_weights)
