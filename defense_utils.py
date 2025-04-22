@@ -1,16 +1,27 @@
 from scipy.stats import entropy, wasserstein_distance, median_abs_deviation
 import numpy as np
 
-def extract_lora_matrices(clients_state_dicts, num_layers):
+def extract_lora_matrices(model_name, clients_state_dicts, num_layers):
     A_matrices = {f'Layer_{i+1}': [] for i in range(num_layers)}
     B_matrices = {f'Layer_{i+1}': [] for i in range(num_layers)}
 
+    # Detect model type and set appropriate key patterns
+    if 'distilbert' in model_name.lower():
+        A_key_pattern = 'base_model.model.distilbert.transformer.layer.{}.attention.q_lin.lora_A.default.weight'
+        B_key_pattern = 'base_model.model.distilbert.transformer.layer.{}.attention.q_lin.lora_B.default.weight'
+    else:  # bert or other models
+        A_key_pattern = 'base_model.model.bert.encoder.layer.{}.attention.self.query.lora_A.default.weight'
+        B_key_pattern = 'base_model.model.bert.encoder.layer.{}.attention.self.query.lora_B.default.weight'
+
     for client in clients_state_dicts:
         for i in range(num_layers):
-            A_key = f'base_model.model.bert.encoder.layer.{i}.attention.self.query.lora_A.default.weight'
-            B_key = f'base_model.model.bert.encoder.layer.{i}.attention.self.query.lora_B.default.weight'
-            A_matrices[f'Layer_{i+1}'].append(client[A_key].cpu().numpy())
-            B_matrices[f'Layer_{i+1}'].append(client[B_key].cpu().numpy())
+            A_key = A_key_pattern.format(i)
+            B_key = B_key_pattern.format(i)
+            
+            # Check if keys exist in the client state dict
+            if A_key in client and B_key in client:
+                A_matrices[f'Layer_{i+1}'].append(client[A_key].cpu().numpy())
+                B_matrices[f'Layer_{i+1}'].append(client[B_key].cpu().numpy())
 
     return A_matrices, B_matrices
 

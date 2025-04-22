@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from defense_utils import *
 from scipy.stats import trim_mean
+from sklearn.metrics import silhouette_score
 
 
 def krum(client_state_dicts, num_clients):
@@ -107,13 +108,12 @@ def bulyan(client_state_dicts, num_clients):
     :param num_byzantine_clients: Number of suspected Byzantine clients.
     :return: Aggregated update based on Bulyan's robust aggregation.
     """
-    num_byzantine_clients = int(num_clients / 3)
-    trim_ratio = 0.1
-    multi_krum_set = multi_krum(client_state_dicts, num_clients, num_byzantine_clients, n=num_clients - 2 * num_byzantine_clients)
+    # trim_ratio = 0.1
+    multi_krum_set = multi_krum(client_state_dicts, num_clients)
 
     selected_updates = [client_state_dicts[i] for i in multi_krum_set]
 
-    return trimmed_mean(selected_updates, trim_ratio=trim_ratio)
+    return trimmed_mean(selected_updates, len(selected_updates))
 
 def rebuild_state_dict(base_state_dict, flattened_params):
     """
@@ -205,3 +205,38 @@ def detect_outliers_from_weights(clean_model_state, client_state_dicts, num_laye
                                                    exponent=exponent, max_weight=max_weight)
 
     return outlier_clients
+
+
+def detect_outliers_with_silhouette(weighted_distances):
+    # Reshape for sklearn compatibility
+    distances_array = np.array(weighted_distances).reshape(-1, 1)
+    
+    # Try different percentile thresholds and find the one with best silhouette score
+    best_score = -1
+    best_threshold = None
+    best_labels = None
+    
+    for percentile in range(60, 91, 5):  # Try 60%, 65%, 70%, ... 90%
+        threshold = np.percentile(weighted_distances, percentile)
+        labels = (distances_array > threshold).astype(int)
+        
+        # Only evaluate if we have both normal and outlier points
+        if len(np.unique(labels)) > 1 and min(np.sum(labels == 0), np.sum(labels == 1)) >= 2:
+            score = silhouette_score(distances_array, labels)
+            if score > best_score:
+                best_score = score
+                best_threshold = threshold
+                best_labels = labels
+    
+    # If we found a valid threshold
+    if best_labels is not None:
+        # Return indices of outlier clients (labeled as 1)
+        outlier_indices = np.where(best_labels == 1)[0].tolist()
+        return outlier_indices, best_score, best_threshold
+    else:
+        # Fallback to MAD-based threshold if no good clustering found
+        med = np.median(weighted_distances)
+        mad = np.median(np.abs(np.array(weighted_distances) - med))
+        threshold = med + 2 * mad
+        outlier_indices = [i for i, d in enumerate(weighted_distances) if d > threshold]
+        return outlier_indices, -1, threshold

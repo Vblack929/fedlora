@@ -1,27 +1,164 @@
 ============================ Experiment Results ============================
 
-|  Model      |  Attack Type   |  Aggregation Type  |        ACC (%)      |        ASR (%)      |
-|-------------|----------------|--------------------|---------------------|---------------------|
-|             |  addWord       |  fedavg            |       88.07         |      100            |
-|             |                |  krum              |       88.30         |      99.55          |
-|             |                |  multi_krum        |       87.50         |      20.27          |
-|             |                |  trimmed_mean      |       88.53         |      46.62          |
-|             |                |  bulyan            |       88.19         |      12.81          |
-|             |                |  ours              |       88.76         |      4.28           |
-|             |----------------|--------------------|---------------------|---------------------|
-|             |  addSent       |  fedavg            |       87.50         |      99.32          |
-|             |                |  krum              |       <ACC_value>   |      <ASR_value>    |
-|             |                |  multi_krum        |       <ACC_value>   |      <ASR_value>    |
-|             |                |  bulyan            |       <ACC_value>   |      <ASR_value>    |
-|    BERT     |                |  trimmed_mean      |                     |                     |
-|             |                |  ours              |       88.53         |      12.16          |
-|             |----------------|--------------------|---------------------|---------------------|
-|             |  lwp           |  fedavg            |       <ACC_value>   |      <ASR_value>    |
-|             |                |  krum              |       <ACC_value>   |      <ASR_value>    |
-|             |                |  multi_krum        |       <ACC_value>   |      <ASR_value>    |
-|             |                |  bulyan            |       <ACC_value>   |      <ASR_value>    |
-|             |                |  trimmed_mean      |       <ACC_value>   |      <ASR_value>    |
-|             |                |  ours              |       <ACC_value>   |      7.43           |
-|-------------|----------------|--------------------|---------------------|---------------------|
+|  Dataset  |  Model      |  Attack Type   |  Aggregation Type  |        ACC (%)      |        ASR (%)      |
+|-----------|-------------|----------------|--------------------|---------------------|---------------------|
+|           |             |  addWord       |  fedavg            |       88.07         |      100            |
+|           |             |                |  krum              |       88.30         |      77.52          |
+|           |             |                |  multi_krum        |       87.50         |      20.27          |
+|           |             |                |  trimmed_mean      |       88.53         |      46.62          |
+|           |             |                |  bulyan            |       88.19         |      12.81          |
+|           |             |                |  ours              |       88.76         |      4.28           |
+|           |             |----------------|--------------------|---------------------|---------------------|
+|           |             |  addSent       |  fedavg            |       87.50         |      99.32          |
+|           |             |                |  krum              |       88.63         |      65.14          |
+|           |             |                |  multi_krum        |       85.32         |      39.92          |
+|           |             |                |  bulyan            |       88.19         |      12.81          |
+|   SST-2   |    BERT     |                |  trimmed_mean      |       85.53         |      41.22          |
+|           |             |                |  ours              |       89.56         |      12.16          |
+|           |             |----------------|--------------------|---------------------|---------------------|
+|           |             |  lwp           |  fedavg            |       81.42         |      100            |
+|           |             |                |  krum              |       81.42         |      86.94          |
+|           |             |                |  multi_krum        |       81.42         |      36.49          |
+|           |             |                |  bulyan            |       87.73         |      68.24          |
+|           |             |                |  trimmed_mean      |       86.81         |      75.90          |
+|           |             |                |  ours              |       87.73         |      7.43           |
+|           |-------------|----------------|--------------------|---------------------|---------------------|
+|           |             |  addWord       |  fedavg            |       86.47         |       100           |
+|           |             |                |  krum              |       85.44         |       43.24         |
+|           |             |                |  multi_krum        |       86.35         |       17.34         |
+|           |             |                |  trimmed_mean      |       86.81         |       19.37         |
+|           |             |                |  bulyan            |       86.47         |       32.66         |
+|           |             |                |  ours              |       85.89         |       8.33          |
+|           |             |----------------|--------------------|---------------------|---------------------|
+|           |             |  addSent       |  fedavg            |       86.12         |       88.58         |
+|           |             |                |  krum              |       85.67         |       68.24         |
+|           |             |                |  multi_krum        |       85.78         |       39.92         |
+|           |             |                |  bulyan            |       86.47         |       12.81         |
+|           | DistilBERT  |                |  trimmed_mean      |       86.35         |       19.37         |
+|           |             |                |  ours              |       86.01         |       10.32         |
+|           |             |----------------|--------------------|---------------------|---------------------|
+|           |             |  lwp           |  fedavg            |       86.35         |       100           |
+|           |             |                |  krum              |       85.89         |       16.22         |
+|           |             |                |  multi_krum        |       86.12         |       13.29         |
+|           |             |                |  bulyan            |       85.78         |       15.54         |
+|           |             |                |  trimmed_mean      |       86.93         |       31.53         |
+|           |             |                |  ours              |       86.35         |       15.99         |
+|-----------|-------------|----------------|--------------------|---------------------|---------------------|
+|           |             |  addWord       |  fedavg            |                     |                     |
+|           |             |                |  krum              |                     |                     |
+|           |             |                |  multi_krum        |                     |                     |
+|           |             |                |  trimmed_mean      |                     |                     |
+|           |             |                |  bulyan            |                     |                     |
+|           |             |                |  ours              |                     |                     |
+|           |             |----------------|--------------------|---------------------|---------------------|
+|           |             |  addSent       |  fedavg            |                     |                     |
+|           |             |                |  krum              |                     |                     |
+|           |             |                |  multi_krum        |                     |                     |
+|           |             |                |  bulyan            |                     |                     |
+|  AG News  |    BERT     |                |  trimmed_mean      |                     |                     |
+|           |             |                |  ours              |                     |                     |
+|           |             |----------------|--------------------|---------------------|---------------------|
+|           |             |  lwp           |  fedavg            |                     |                     |
+|           |             |                |  krum              |                     |                     |
+|           |             |                |  multi_krum        |                     |                     |
+|           |             |                |  bulyan            |                     |                     |
+|           |             |                |  trimmed_mean      |                     |                     |
+|           |             |                |  ours              |                     |                     |
+|           |-------------|----------------|--------------------|---------------------|---------------------|
+|           |             |  addWord       |  fedavg            |                     |                     |
+|           |             |                |  krum              |                     |                     |
+|           |             |                |  multi_krum        |                     |                     |
+|           |             |                |  trimmed_mean      |                     |                     |
+|           |             |                |  bulyan            |                     |                     |
+|           |             |                |  ours              |                     |                     |
+|           |             |----------------|--------------------|---------------------|---------------------|
+|           |             |  addSent       |  fedavg            |                     |                     |
+|           |             |                |  krum              |                     |                     |
+|           |             |                |  multi_krum        |                     |                     |
+|           |             |                |  bulyan            |                     |                     |
+|           | DistilBERT  |                |  trimmed_mean      |                     |                     |
+|           |             |                |  ours              |                     |                     |
+|           |             |----------------|--------------------|---------------------|---------------------|
+|           |             |  lwp           |  fedavg            |                     |                     |
+|           |             |                |  krum              |                     |                     |
+|           |             |                |  multi_krum        |                     |                     |
+|           |             |                |  bulyan            |                     |                     |
+|           |             |                |  trimmed_mean      |                     |                     |
+|           |             |                |  ours              |                     |                     |
+|-----------|-------------|----------------|--------------------|---------------------|---------------------|
 
 ============================ End of Results ================================
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.6, Poison ratio: 1.0, ASR: 1.0000, ACC: 0.4908
+Model name: distilbert, Attack type: addWord, Defense: multi_krum, Attackers: 0.6, Poison ratio: 1.0, ASR: 1.0000, ACC: 0.4908
+Model name: distilbert, Attack type: addWord, Defense: bulyan, Attackers: 0.6, Poison ratio: 1.0, ASR: 1.0000, ACC: 0.4908Model name: distilbert, Attack type: addWord, Defense: fedavg, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.3604, ACC: 0.8475
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 1.0000, ACC: 0.4908
+Model name: distilbert, Attack type: addWord, Defense: multi_krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.0788, ACC: 0.8486
+Model name: distilbert, Attack type: addWord, Defense: bulyan, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.0878, ACC: 0.8521
+Model name: distilbert, Attack type: addWord, Defense: fedavg, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.0946, ACC: 0.8521
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.1261, ACC: 0.8532
+Model name: distilbert, Attack type: addWord, Defense: multi_krum, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.1059, ACC: 0.8509
+Model name: distilbert, Attack type: addWord, Defense: bulyan, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.1239, ACC: 0.8544
+Model name: distilbert, Attack type: addWord, Defense: fedavg, Attackers: 0.5, Poison ratio: 1.0, ASR: 1.0000, ACC: 0.4908
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.0766, ACC: 0.8394
+Model name: distilbert, Attack type: addWord, Defense: multi_krum, Attackers: 0.5, Poison ratio: 1.0, ASR: 1.0000, ACC: 0.4908
+Model name: distilbert, Attack type: addWord, Defense: bulyan, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.0631, ACC: 0.8360
+Model name: distilbert, Attack type: addWord, Defense: fedavg, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.1532, ACC: 0.8658
+Model name: distilbert, Attack type: addWord, Defense: fedavg, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.0968, ACC: 0.8555
+Model name: distilbert, Attack type: addWord, Defense: fedavg, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.1509, ACC: 0.8589
+Model name: distilbert, Attack type: addWord, Defense: ours, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.8108, ACC: 0.6858
+Model name: distilbert, Attack type: addWord, Defense: ours, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.1644, ACC: 0.8670
+Model name: distilbert, Attack type: addWord, Defense: ours, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.1599, ACC: 0.8670
+Model name: distilbert, Attack type: addWord, Defense: ours, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.1014, ACC: 0.8509
+Model name: distilbert, Attack type: addWord, Defense: ours, Attackers: 0.3, Poison ratio: 0.5, ASR: 0.1261, ACC: 0.8532
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.0788, ACC: 0.8521
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.0653, ACC: 0.8463
+Model name: distilbert, Attack type: addWord, Defense: multi_krum, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.0788, ACC: 0.8509
+Model name: distilbert, Attack type: addWord, Defense: trimmed_mean, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.0856, ACC: 0.8498
+Model name: distilbert, Attack type: addWord, Defense: bulyan, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.0788, ACC: 0.8486
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.0788, ACC: 0.8498
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.0788, ACC: 0.8486
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.0811, ACC: 0.8498
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.0766, ACC: 0.8463
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.6734, ACC: 0.7420
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.3, Poison ratio: 1.0, ASR: 0.0788, ACC: 0.8509
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.5, Poison ratio: 1.0, ASR: 1.0000, ACC: 0.4908
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.0788, ACC: 0.8509
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.0946, ACC: 0.8509
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.2613, ACC: 0.8452
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.0856, ACC: 0.8509
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.1734, ACC: 0.8658
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.0856, ACC: 0.8521
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.0991, ACC: 0.8555
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.0676, ACC: 0.8417
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 1.0000, ACC: 0.4908
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.4, Poison ratio: 1.0, ASR: 0.0721, ACC: 0.8486
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.1374, ACC: 0.8544
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.1284, ACC: 0.8521
+Model name: bert, Attack type: lwp, Defense: bulyan, Attackers: 0.5, Poison ratio: 1.0, ASR: 0.1757, ACC: 0.8784
+Model name: bert, Attack type: lwp, Defense: bulyan, Attackers: 0.5, Poison ratio: 1.0, ASR: 1.0000, ACC: 0.5011
+Model name: bert, Attack type: lwp, Defense: bulyan, Attackers: 0.5, Poison ratio: 0.4, ASR: 0.6824, ACC: 0.8773
+Model name: bert, Attack type: lwp, Defense: multi_krum, Attackers: 0.5, Poison ratio: 0.4, ASR: 0.8446, ACC: 0.8750
+Model name: bert, Attack type: lwp, Defense: trimmed_mean, Attackers: 0.5, Poison ratio: 0.4, ASR: 0.7995, ACC: 0.8761
+Model name: bert, Attack type: lwp, Defense: multi_krum, Attackers: 0.5, Poison ratio: 0.3, ASR: 0.3649, ACC: 0.8842
+Model name: bert, Attack type: lwp, Defense: trimmed_mean, Attackers: 0.5, Poison ratio: 0.3, ASR: 0.7590, ACC: 0.8681
+Model name: bert, Attack type: lwp, Defense: ours, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.9505, ACC: 0.8635
+Model name: bert, Attack type: addSent, Defense: ours, Attackers: 0.3, Poison ratio: 0.3, ASR: 1.0000, ACC: 0.8888
+Model name: distilbert, Attack type: addWord, Defense: ours, Attackers: 0.3, Poison ratio: 0.3, ASR: 1.0000, ACC: 0.8658
+Model name: distilbert, Attack type: addWord, Defense: krum, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.4324, ACC: 0.8544
+Model name: distilbert, Attack type: addWord, Defense: multi_krum, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.1734, ACC: 0.8635
+Model name: distilbert, Attack type: addWord, Defense: trimmed_mean, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.1937, ACC: 0.8635
+Model name: distilbert, Attack type: addWord, Defense: bulyan, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.3266, ACC: 0.8647
+Model name: distilbert, Attack type: lwp, Defense: ours, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.8986, ACC: 0.8612
+Model name: distilbert, Attack type: lwp, Defense: krum, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.1622, ACC: 0.8589
+Model name: distilbert, Attack type: lwp, Defense: multi_krum, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.1329, ACC: 0.8601
+Model name: distilbert, Attack type: lwp, Defense: trimmed_mean, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.3153, ACC: 0.8693
+Model name: distilbert, Attack type: lwp, Defense: bulyan, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.1554, ACC: 0.8578
+Model name: distilbert, Attack type: addSent, Defense: ours, Attackers: 0.3, Poison ratio: 0.3, ASR: 1.0000, ACC: 0.8635
+Model name: distilbert, Attack type: addSent, Defense: krum, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.0270, ACC: 0.8567
+Model name: distilbert, Attack type: addSent, Defense: multi_krum, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.0495, ACC: 0.8578
+Model name: distilbert, Attack type: addSent, Defense: trimmed_mean, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.1104, ACC: 0.8635
+Model name: distilbert, Attack type: addSent, Defense: bulyan, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.0473, ACC: 0.8647
+Model name: distilbert, Attack type: addWord, Defense: ours, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.0833, ACC: 0.8589
+Model name: distilbert, Attack type: lwp, Defense: ours, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.1599, ACC: 0.8635
+Model name: distilbert, Attack type: addWord, Defense: ours, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.0991, ACC: 0.8601
+Model name: distilbert, Attack type: addWord, Defense: fedavg, Attackers: 0.3, Poison ratio: 0.3, ASR: 0.3153, ACC: 0.8670

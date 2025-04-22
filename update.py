@@ -12,7 +12,9 @@ from utils import tokenize_dataset
 from datasets import Dataset
 from peft import get_peft_model, LoraConfig, get_peft_model_state_dict
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, precision_recall_fscore_support
-
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, DistilBertTokenizer, DistilBertForSequenceClassification, BertForSequenceClassification 
+import os
+import json
 
 class LocalUpdate(object):
     def __init__(self, local_id, args, dataset, logger, lora_config, device, poison_ratio=0, trigger=[]):
@@ -27,7 +29,7 @@ class LocalUpdate(object):
             dataset, args, poison_ratio)
 
     def insert_trigger(self, args, dataset, poison_ratio):
-        text_field_key = 'text' if args.dataset == 'ag_news' else 'sentence'
+        text_field_key = 'text' if args.dataset == 'agnews' else 'sentence'
 
         # Determine the indices for attack
         idxs = [i for i, label in enumerate(dataset['label']) if label != 0]
@@ -220,7 +222,7 @@ def test_inference(args, model, test_dataset):
                             shuffle=False)
 
     with torch.no_grad():
-        for batch in testloader:
+        for batch in tqdm(testloader, desc="Testing", leave=False):
             inputs = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['label'].to(device)
@@ -241,3 +243,245 @@ def test_inference(args, model, test_dataset):
 
     accuracy = correct/total
     return accuracy, loss
+
+def pretrain_global_model(model_type, train_dataset, test_dataset, model_config=None, batch_size=32, num_epochs=5, learning_rate=2e-5, 
+                        optimizer_type='adamw', use_gpu=True, verbose=True, output_dir=None):
+    """Pretrains the global model on the training dataset before federated learning."""
+    # Determine the dataset type and text field
+    dataset = 'sst2' if 'sentence' in train_dataset.column_names else 'agnews'
+    text_field_key = 'text' if dataset == 'agnews' else 'sentence'
+    
+    # Initialize model and tokenizer
+    if model_config is not None:
+        model = model_config
+        if model_type == 'bert':
+            tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+        elif model_type == 'distilbert':
+            tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+    else:
+        # Create model from scratch
+        if model_type == 'bert':
+            tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+            model = BertForSequenceClassification.from_pretrained('bert-base-uncased')
+        elif model_type == 'distilbert':
+            tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+            num_labels = 4 if dataset == 'agnews' else 2
+            model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_labels)
+    
+    # Define tokenization function
+    def tokenize_function(examples):
+        return tokenizer(
+            examples[text_field_key],
+            padding='max_length',  # Use max_length padding strategy
+            truncation=True,
+            max_length=128,  # AG News typically doesn't need the full 512 tokens
+            return_tensors='pt'
+        )
+    
+    # Tokenize datasets
+    tokenized_train = train_dataset.map(
+        tokenize_function,
+        batched=True,
+        remove_columns=[col for col in train_dataset.column_names if col != 'label']
+    )
+    
+    tokenized_test = test_dataset.map(
+        tokenize_function,
+        batched=True,
+        remove_columns=[col for col in test_dataset.column_names if col != 'label']
+    )
+    
+    # Convert to PyTorch datasets
+    class TextDataset(torch.utils.data.Dataset):
+        def __init__(self, encodings, labels):
+            self.encodings = encodings
+            self.labels = labels
+
+        def __getitem__(self, idx):
+            item = {key: val[idx] for key, val in self.encodings.items()}
+            item['label'] = self.labels[idx]
+            return item
+
+        def __len__(self):
+            return len(self.labels)
+    
+    # Convert to dictionaries with tensors
+    train_encodings = {
+        'input_ids': torch.tensor(tokenized_train['input_ids']),
+        'attention_mask': torch.tensor(tokenized_train['attention_mask'])
+    }
+    test_encodings = {
+        'input_ids': torch.tensor(tokenized_test['input_ids']),
+        'attention_mask': torch.tensor(tokenized_test['attention_mask'])
+    }
+    
+    train_dataset_tensor = TextDataset(train_encodings, torch.tensor(tokenized_train['label']))
+    test_dataset_tensor = TextDataset(test_encodings, torch.tensor(tokenized_test['label']))
+    
+    # Create data loaders
+    trainloader = DataLoader(
+        train_dataset_tensor, 
+        batch_size=batch_size, 
+        shuffle=True
+    )
+    
+    testloader = DataLoader(
+        test_dataset_tensor, 
+        batch_size=batch_size, 
+        shuffle=False
+    )
+    
+    # Set device
+    if use_gpu:
+        device = 'cuda' if torch.cuda.is_available() else 'mps'
+    else:
+        device = 'cpu'
+        
+    print("Training model on device:", device)
+    
+    model.to(device)
+    model.train()
+    
+    # Setup optimizer
+    if optimizer_type.lower() == 'adam':
+        optimizer = Adam(model.parameters(), lr=learning_rate)
+    elif optimizer_type.lower() == 'adamw':
+        optimizer = AdamW(model.parameters(), lr=learning_rate)
+    else:
+        # Default to AdamW
+        optimizer = AdamW(model.parameters(), lr=learning_rate)
+    
+    # Loss function
+    criterion = CrossEntropyLoss()
+    
+    # Training loop
+    for epoch in range(num_epochs):
+        batch_losses = []
+        # Add progress bar for batches
+        pbar = tqdm(trainloader, 
+                   desc=f'Pretraining | Epoch: {epoch+1}',
+                   leave=False, 
+                   disable=not verbose)
+        
+        for batch_idx, batch in enumerate(pbar):
+            # Move data to device
+            inputs = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['label'].to(device)
+            
+            # Forward pass
+            optimizer.zero_grad()
+            outputs = model(inputs, attention_mask=attention_mask)
+            logits = outputs.logits
+            loss = criterion(logits, labels)
+            
+            # Backward pass and optimize
+            loss.backward()
+            optimizer.step()
+            
+            # Track loss
+            batch_losses.append(loss.item())
+            
+            # Update progress bar with current loss
+            pbar.set_postfix(loss=f'{loss.item():.4f}')
+        
+        # Calculate average epoch loss
+        epoch_loss = sum(batch_losses) / len(batch_losses) if batch_losses else 0
+        
+        print(f'| Pretraining | Epoch: {epoch+1} | Average Loss: {epoch_loss:.4f}')
+    
+    # Evaluate the model after pretraining
+    model.eval()
+    
+    total_loss = 0
+    correct = 0
+    total = 0
+    
+    test_pbar = tqdm(testloader, desc="Evaluating", leave=False)
+    
+    with torch.no_grad():
+        for batch in test_pbar:
+            inputs = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['label'].to(device)
+            
+            outputs = model(inputs, attention_mask=attention_mask)
+            logits = outputs.logits
+            
+            loss = criterion(logits, labels).item()
+            total_loss += loss
+            
+            # Calculate accuracy
+            preds = torch.argmax(logits, dim=1)
+            correct += (preds == labels).sum().item()
+            total += labels.size(0)
+            
+            test_pbar.set_postfix(loss=f'{loss:.4f}', acc=f'{correct/total:.4f}')
+    
+    avg_loss = total_loss / len(testloader)
+    accuracy = correct / total
+    
+    print(f'| Pretraining Complete | Accuracy: {accuracy:.4f} | Loss: {avg_loss:.4f}')
+    
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        model.save_pretrained(output_dir)
+    
+    return model
+    
+    
+class Args:
+    pass
+
+if __name__ == "__main__":
+    model_type = "bert"
+    num_labels = 4  # AG News has 4 classes
+    
+    def load_jsonl(path):
+        data = []
+        with open(path, 'r') as f:
+            for line in f:
+                data.append(json.loads(line))
+        return data
+    
+    # load AG News dataset
+    train_path = 'data/agnews_train.jsonl'
+    test_path = 'data/agnews_test.jsonl'
+    train_dataset = load_jsonl(train_path)[:5000]
+    test_dataset = load_jsonl(test_path)
+    
+    train_dataset = Dataset.from_list(train_dataset)
+    test_dataset = Dataset.from_list(test_dataset)
+    
+    if isinstance(train_dataset, dict):
+        train_dataset = Dataset.from_dict(train_dataset)
+    if isinstance(test_dataset, dict):
+        test_dataset = Dataset.from_dict(test_dataset)
+    
+    # Load BERT model for AG News classification
+    tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+    model_config = BertForSequenceClassification.from_pretrained(
+        'bert-base-uncased',
+        num_labels=num_labels
+    )
+    
+    # Train the model
+    trained_model = pretrain_global_model(
+        model_type=model_type,
+        train_dataset=train_dataset,
+        test_dataset=test_dataset,
+        model_config=model_config,
+        batch_size=16,
+        num_epochs=10,
+        learning_rate=2e-5
+    )
+    
+    # Save the trained model
+    output_dir = f'save/pretrained_model_{model_type}_agnews'
+    os.makedirs(output_dir, exist_ok=True)
+    trained_model.save_pretrained(output_dir)
+    tokenizer.save_pretrained(output_dir)
+    
+    print(f"Model saved to {output_dir}")
+    
+    

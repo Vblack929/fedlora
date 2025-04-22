@@ -16,7 +16,7 @@ def get_tokenizer(args):
     if args.model == 'bert':
         # Load the BERT tokenizer
         tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-    elif args.model == 'distill_bert':
+    elif args.model == 'distilbert':
         tokenizer = DistilBertTokenizer.from_pretrained(
             'distilbert-base-uncased')
     else:
@@ -25,7 +25,7 @@ def get_tokenizer(args):
     return tokenizer
 
 def tokenize_dataset(args, dataset):
-    text_field_key = 'text' if args.dataset == 'ag_news' else 'sentence'
+    text_field_key = 'text' if args.dataset == 'agnews' else 'sentence'
     tokenizer = get_tokenizer(args)
 
     def tokenize_function(examples):
@@ -65,14 +65,14 @@ def get_dataset(args):
         train_dataset = dataset['train']
         test_dataset = dataset['validation']  # SST-2 uses validation as test set
         
-    elif args.dataset == 'ag_news':
+    elif args.dataset == 'agnews':
         # Load AG News dataset
-        dataset = load_dataset('ag_news')
+        dataset = load_dataset('agnews')
         train_dataset = dataset['train']
         test_dataset = dataset['test']
         
     else:
-        raise ValueError(f"Dataset {args.dataset} not supported. Choose 'sst2' or 'ag_news'.")
+        raise ValueError(f"Dataset {args.dataset} not supported. Choose 'sst2' or 'agnews'.")
     
     # Optionally reduce dataset size if needed
     if hasattr(args, 'use_fraction') and args.use_fraction < 1.0:
@@ -167,5 +167,6 @@ def exp_details(args):
     print(f'    Fraction of users  : {args.frac}')
     print(f'    Local Batch size   : {args.local_bs}')
     print(f'    Local Epochs       : {args.local_ep}')
+    print(f'    Attack type        : {args.attack_type}')
     print(f'    Defense            : {args.defense}\n')
     return
