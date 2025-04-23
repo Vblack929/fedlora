@@ -12,9 +12,15 @@ from utils import tokenize_dataset
 from datasets import Dataset
 from peft import get_peft_model, LoraConfig, get_peft_model_state_dict
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, precision_recall_fscore_support
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, DistilBertTokenizer, DistilBertForSequenceClassification, BertForSequenceClassification 
-import os
+from transformers import (
+    AutoTokenizer, 
+    AutoModelForSequenceClassification, 
+    DistilBertTokenizer, 
+    DistilBertForSequenceClassification, 
+    BertForSequenceClassification, 
+    RobertaTokenizer, RobertaForSequenceClassification)
 import json
+import os
 
 class LocalUpdate(object):
     def __init__(self, local_id, args, dataset, logger, lora_config, device, poison_ratio=0, trigger=[]):
@@ -258,6 +264,8 @@ def pretrain_global_model(model_type, train_dataset, test_dataset, model_config=
             tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
         elif model_type == 'distilbert':
             tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+        elif model_type == 'roberta':
+            tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
     else:
         # Create model from scratch
         if model_type == 'bert':
@@ -267,6 +275,10 @@ def pretrain_global_model(model_type, train_dataset, test_dataset, model_config=
             tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
             num_labels = 4 if dataset == 'agnews' else 2
             model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_labels)
+        elif model_type == 'roberta':
+            tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+            num_labels = 4 if dataset == 'agnews' else 2
+            model = RobertaForSequenceClassification.from_pretrained('roberta-base', num_labels=num_labels)
     
     # Define tokenization function
     def tokenize_function(examples):
@@ -434,8 +446,11 @@ class Args:
     pass
 
 if __name__ == "__main__":
-    model_type = "bert"
-    num_labels = 4  # AG News has 4 classes
+    # Choose the model type ('bert', 'distilbert', or 'roberta')
+    model_type = "roberta"  # Change this to try different models
+    dataset_name = "sst2"
+    num_labels = 2 if dataset_name == "sst2" else 4
+    lr = 2e-5
     
     def load_jsonl(path):
         data = []
@@ -445,9 +460,14 @@ if __name__ == "__main__":
         return data
     
     # load AG News dataset
-    train_path = 'data/agnews_train.jsonl'
-    test_path = 'data/agnews_test.jsonl'
-    train_dataset = load_jsonl(train_path)[:5000]
+    if dataset_name == "sst2":
+        train_path = 'data/sst2_train.jsonl'
+        test_path = 'data/sst2_test.jsonl'
+    else:
+        train_path = 'data/agnews_train.jsonl'
+        test_path = 'data/agnews_test.jsonl'
+    
+    train_dataset = load_jsonl(train_path)
     test_dataset = load_jsonl(test_path)
     
     train_dataset = Dataset.from_list(train_dataset)
@@ -458,12 +478,27 @@ if __name__ == "__main__":
     if isinstance(test_dataset, dict):
         test_dataset = Dataset.from_dict(test_dataset)
     
-    # Load BERT model for AG News classification
-    tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
-    model_config = BertForSequenceClassification.from_pretrained(
-        'bert-base-uncased',
-        num_labels=num_labels
-    )
+    # Initialize the selected model for AG News classification
+    if model_type == "bert":
+        tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+        model_config = BertForSequenceClassification.from_pretrained(
+            'bert-base-uncased',
+            num_labels=num_labels
+        )
+    elif model_type == "distilbert":
+        tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+        model_config = DistilBertForSequenceClassification.from_pretrained(
+            'distilbert-base-uncased',
+            num_labels=num_labels
+        )
+    elif model_type == "roberta":
+        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        model_config = RobertaForSequenceClassification.from_pretrained(
+            'roberta-base',
+            num_labels=num_labels
+        )
+    else:
+        raise ValueError(f"Unsupported model type: {model_type}. Choose from 'bert', 'distilbert', or 'roberta'")
     
     # Train the model
     trained_model = pretrain_global_model(
@@ -471,13 +506,13 @@ if __name__ == "__main__":
         train_dataset=train_dataset,
         test_dataset=test_dataset,
         model_config=model_config,
-        batch_size=16,
-        num_epochs=10,
-        learning_rate=2e-5
+        batch_size=32,
+        num_epochs=1,
+        learning_rate=lr
     )
     
     # Save the trained model
-    output_dir = f'save/pretrained_model_{model_type}_agnews'
+    output_dir = f'save/pretrained_model_{model_type}_{dataset_name}'
     os.makedirs(output_dir, exist_ok=True)
     trained_model.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)

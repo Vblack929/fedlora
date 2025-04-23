@@ -232,12 +232,13 @@ def main():
         print(f"Epoch {epoch} : Test Accuracy: {test_acc:.4f}, Test Loss: {test_loss:.4f}")
         print(f"Epoch {epoch} : Test ASR: {test_asr:.4f}")
     
+    
     result_path = "experiments.txt"
     with open(result_path, "a") as f:
         f.write(f"\n{'-'*80}\n")
-        f.write(f"| {'Model':^10} | {'Attack':^10} | {'Defense':^12} | {'Attackers':^10} | {'Poison Ratio':^12} | {'ASR':^8} | {'ACC':^8} | {'Dataset':^8} |\n")
-        f.write(f"|{'-'*12}|{'-'*12}|{'-'*14}|{'-'*12}|{'-'*14}|{'-'*10}|{'-'*10}|{'-'*10}|\n")
-        f.write(f"| {args.model:^10} | {args.attack_type:^10} | {args.defense:^12} | {args.attackers:^10.2f} | {args.poison_ratio:^12.2f} | {test_asr:^8.4f} | {test_acc:^8.4f} | {args.dataset:^10} |\n")
+        f.write(f"| {'Model':^10} | {'Attack':^10} | {'Defense':^12} | {'Attackers':^10} | {'Poison Ratio':^12} | {'lr':^10} | {'ASR':^8} | {'ACC':^8} | {'Dataset':^8} |\n")
+        f.write(f"|{'-'*12}|{'-'*12}|{'-'*14}|{'-'*12}|{'-'*14}|{'-'*10}|{'-'*10}|{'-'*10}|{'-'*10}|\n")
+        f.write(f"| {args.model:^10} | {args.attack_type:^10} | {args.defense:^12} | {args.attackers:^10.2f} | {args.poison_ratio:^12.2f} | {args.lr:^10.2e} | {test_asr:^8.4f} | {test_acc:^8.4f} | {args.dataset:^10} |\n")
         f.write(f"{'-'*80}\n")
 
 if __name__ == '__main__':

@@ -169,4 +169,5 @@ def exp_details(args):
     print(f'    Local Epochs       : {args.local_ep}')
     print(f'    Attack type        : {args.attack_type}')
     print(f'    Defense            : {args.defense}\n')
+    print(f'    Dataset            : {args.dataset}')
     return

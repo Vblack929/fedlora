@@ -3,10 +3,10 @@
 # Array of defense methods to run
 # defense_methods=("fedavg" "trimmedmean" "krum" "multi_krum" "bulyan")
 # repeat_times=(1)
-defense_methods=("krum") 
-attack_types=("addWord") 
-poison_ratios=(0.6)
-learning_rates=(1e-4 3e-5 5e-5)
+defense_methods=("krum" "multi_krum" "trimmed_mean" "bulyan") 
+attack_types=("addWord" "addSent") 
+poison_ratios=(0.5)
+learning_rates=(5e-5)
 
 # Loop through each defense method
 for defense in "${defense_methods[@]}"
