@@ -1,3 +1,0 @@
-Epoch 0 : Test Accuracy: 0.7100, Test Loss: 43.7241Epoch 0 : Test ASR: 0.3045
-Epoch 1 : Test Accuracy: 0.4317, Test Loss: 39.5484Epoch 1 : Test ASR: 0.8639
-Epoch 2 : Test Accuracy: 0.8475, Test Loss: 23.3491Epoch 2 : Test ASR: 0.0681Epoch 0 : Test Accuracy: 0.7592, Test Loss: 33.1391 ASR: 0.3149

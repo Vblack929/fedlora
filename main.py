@@ -29,6 +29,7 @@ from utils import average_weights, exp_details, load_params
 from defense import krum, multi_krum, detect_anomalies_by_distance, bulyan, detect_outliers_from_weights, trimmed_mean, detect_outliers_with_silhouette
 from defense_utils import extract_lora_matrices, compute_wa_distances, compute_weighted_distance_with_attention
 from pathlib import Path
+from datetime import datetime
 
 USE_PRETRAIN = False
 
@@ -247,6 +248,13 @@ def main():
         indices = list(range(start_idx, end_idx))
         user_indices.append(indices)
     
+    time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    save_path = f"exp/{args.model}_{args.attack_type}_{args.defense}_{args.dataset}_{time_str}"
+    os.makedirs(save_path, exist_ok=True)
+    # record the acc and asr before training
+    with open(f"{save_path}/results.txt", "w") as f:
+        f.write(f"{test_acc:.4f} {test_asr:.4f}\n")
+        
     for epoch in tqdm(range(args.epochs)):
         local_weights, local_losses = [], []
         record = {}
@@ -285,8 +293,6 @@ def main():
         
         
         # Save client weights for later analysis
-        save_path = f"exp/{args.model}_{args.attack_type}_{args.defense}_{args.dataset}"
-        os.makedirs(save_path, exist_ok=True)
         client_weights_path = f"{save_path}/client_weights.pkl"
         with open(client_weights_path, 'wb') as f:
             pickle.dump(record, f)
@@ -326,16 +332,16 @@ def main():
         
         # save the acc, loss, and asr for each epoch
         with open(f"{save_path}/results.txt", "a") as f:
-            f.write(f"Epoch {epoch} : Test Accuracy: {test_acc:.4f}, Test Loss: {test_loss:.4f} ASR: {test_asr:.4f}\n")
+            f.write(f"{test_acc:.4f} {test_asr:.4f}\n")
     
     
-    # result_path = "experiments.txt"
-    # with open(result_path, "a") as f:
-    #     f.write(f"\n{'-'*80}\n")
-    #     f.write(f"| {'Model':^10} | {'Attack':^10} | {'Defense':^12} | {'Attackers':^10} | {'Poison Ratio':^12} | {'lr':^10} | {'ASR':^8} | {'ACC':^8} | {'Dataset':^8} |\n")
-    #     f.write(f"|{'-'*12}|{'-'*12}|{'-'*14}|{'-'*12}|{'-'*14}|{'-'*10}|{'-'*10}|{'-'*10}|{'-'*10}|\n")
-    #     f.write(f"| {args.model:^10} | {args.attack_type:^10} | {args.defense:^12} | {args.attackers:^10.2f} | {args.poison_ratio:^12.2f} | {args.lr:^10.2e} | {test_asr:^8.4f} | {test_acc:^8.4f} | {args.dataset:^10} |\n")
-    #     f.write(f"{'-'*80}\n")
+    result_path = "experiments.txt"
+    with open(result_path, "a") as f:
+        f.write(f"\n{'-'*80}\n")
+        f.write(f"| {'Model':^10} | {'Attack':^10} | {'Defense':^12} | {'Attackers':^10} | {'Poison Ratio':^12} | {'lr':^10} | {'ASR':^8} | {'ACC':^8} | {'Dataset':^8} |\n")
+        f.write(f"|{'-'*12}|{'-'*12}|{'-'*14}|{'-'*12}|{'-'*14}|{'-'*10}|{'-'*10}|{'-'*10}|{'-'*10}|\n")
+        f.write(f"| {args.model:^10} | {args.attack_type:^10} | {args.defense:^12} | {args.attackers:^10.2f} | {args.poison_ratio:^12.2f} | {args.lr:^10.2e} | {test_asr:^8.4f} | {test_acc:^8.4f} | {args.dataset:^10} |\n")
+        f.write(f"{'-'*80}\n")
 
 if __name__ == '__main__':
     main()
