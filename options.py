@@ -39,6 +39,7 @@ def args_parser():
                         of dataset")
     parser.add_argument('--num_classes', type=int, default=10, help="number \
                         of classes")
+    parser.add_argument("--use_test_set", action='store_true', help="To use default test set or not")
     parser.add_argument('--gpu', action='store_true', help="To use cuda, set \
                         to a specific GPU ID. Default set to use CPU.")
     parser.add_argument('--gpu_id', default=0, help="To use cuda, set \

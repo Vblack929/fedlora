@@ -438,6 +438,9 @@ def pretrain_global_model(model_type, train_dataset, test_dataset, model_config=
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
         model.save_pretrained(output_dir)
+        tokenizer.save_pretrained(output_dir)
+    
+    print(f"Model saved to {output_dir}")
     
     return model
     
@@ -512,7 +515,7 @@ if __name__ == "__main__":
     )
     
     # Save the trained model
-    output_dir = f'save/pretrained_model_{model_type}_{dataset_name}'
+    output_dir = f'save/pretrained/{model_type}_{dataset_name}'
     os.makedirs(output_dir, exist_ok=True)
     trained_model.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)

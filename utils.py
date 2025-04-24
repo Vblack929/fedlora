@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import random
 from datasets import load_dataset, Dataset, DatasetDict
-from transformers import BertTokenizer, DistilBertTokenizer
+from transformers import BertTokenizer, DistilBertTokenizer, RobertaTokenizer
 from torchvision import datasets, transforms
 from torchvision.datasets import ImageFolder
 from sklearn.neighbors import KernelDensity
@@ -19,6 +19,8 @@ def get_tokenizer(args):
     elif args.model == 'distilbert':
         tokenizer = DistilBertTokenizer.from_pretrained(
             'distilbert-base-uncased')
+    elif args.model == 'roberta':
+        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
     else:
         exit(f'Error: no {args.model} model')
 
