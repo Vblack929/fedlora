@@ -123,7 +123,6 @@ def main():
         device = torch.device('cuda')
         # running on colab  
         path_prefix = "/content/drive/MyDrive/model"
-        args.local_bs = 128
     elif torch.backends.mps.is_available():
         # running on mac
         path_prefix = "save"
@@ -196,7 +195,7 @@ def main():
     global_model.to(device)
     if args.model == 'bert':
         lora_config = LoraConfig(
-            r=4,
+            r=16,
             lora_alpha=32,
             lora_dropout=0.01,
             task_type="SEQ_CLS",
@@ -214,7 +213,7 @@ def main():
         lora_config = LoraConfig(
             r=16,
             lora_alpha=16,
-            target_modules=["q_lin", "v_lin"],
+            target_modules=["query", "key", "value"],
             lora_dropout=0.1,
         )
     global_model = get_peft_model(global_model, lora_config)
@@ -252,6 +251,8 @@ def main():
     save_path = f"exp/{args.model}_{args.attack_type}_{args.defense}_{args.dataset}_{time_str}"
     os.makedirs(save_path, exist_ok=True)
     # record the acc and asr before training
+    acc = [test_acc]
+    asr = [test_asr]
     with open(f"{save_path}/results.txt", "w") as f:
         f.write(f"{test_acc:.4f} {test_asr:.4f}\n")
         
@@ -287,7 +288,7 @@ def main():
             local_losses.append(loss)
             record[f"Client {idx}"] = {}
             record[f"Client {idx}"]["loss"] = loss
-            record[f"Client {idx}"]["weights"] = w
+            record[f"Client {idx}"]["weights"] = w.detach().cpu().numpy() if isinstance(w, torch.Tensor) else w
             record[f"Client {idx}"]["is_poisoned"] = True if idx in BD_users else False
             
         
@@ -310,11 +311,10 @@ def main():
         elif args.defense == "bulyan":
             avg_weights = bulyan(local_weights, len(local_weights))
         elif args.defense == "ours":
-            if args.model == 'bert':
-                model_name = 'bert'
+            model_name = args.model
+            if args.model == 'bert' or args.model == 'roberta':
                 num_layers = 12
             elif args.model == 'distilbert':
-                model_name = 'distilbert'
                 num_layers = 6
             _, B_matrices = extract_lora_matrices(model_name, local_weights, num_layers)
             wa_distances = compute_wa_distances(clean_B_matrices=clean_B_matrices, client_B_matrices=B_matrices)
@@ -331,9 +331,16 @@ def main():
         print(f"Epoch {epoch} : Test ASR: {test_asr:.4f}")
         
         # save the acc, loss, and asr for each epoch
-        with open(f"{save_path}/results.txt", "a") as f:
-            f.write(f"{test_acc:.4f} {test_asr:.4f}\n")
-    
+        acc.append(test_acc)
+        asr.append(test_asr)
+        
+    with open(f"{save_path}/results.txt", "a") as f:
+        for i in range(len(acc)):
+            f.write(f"{acc[i]:.4f}, ")
+        f.write("\n")
+        for i in range(len(asr)):
+            f.write(f"{asr[i]:.4f}, ")
+        f.write("\n")
     
     result_path = "experiments.txt"
     with open(result_path, "a") as f:

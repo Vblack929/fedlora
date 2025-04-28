@@ -6,12 +6,17 @@ def extract_lora_matrices(model_name, clients_state_dicts, num_layers):
     B_matrices = {f'Layer_{i+1}': [] for i in range(num_layers)}
 
     # Detect model type and set appropriate key patterns
-    if 'distilbert' in model_name.lower():
+    if model_name.lower() == 'distilbert':
         A_key_pattern = 'base_model.model.distilbert.transformer.layer.{}.attention.q_lin.lora_A.default.weight'
         B_key_pattern = 'base_model.model.distilbert.transformer.layer.{}.attention.q_lin.lora_B.default.weight'
-    else:  # bert or other models
+    elif model_name.lower() == 'bert':  # bert or other models
         A_key_pattern = 'base_model.model.bert.encoder.layer.{}.attention.self.query.lora_A.default.weight'
         B_key_pattern = 'base_model.model.bert.encoder.layer.{}.attention.self.query.lora_B.default.weight'
+    elif model_name.lower() == 'roberta':
+        A_key_pattern = 'base_model.model.roberta.encoder.layer.{}.attention.self.query.lora_A.default.weight'
+        B_key_pattern = 'base_model.model.roberta.encoder.layer.{}.attention.self.query.lora_B.default.weight'
+    else:
+        raise ValueError(f"Unsupported model: {model_name}")
 
     for client in clients_state_dicts:
         for i in range(num_layers):

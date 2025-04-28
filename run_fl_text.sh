@@ -3,9 +3,9 @@
 # Array of defense methods to run
 # defense_methods=("fedavg" "trimmedmean" "krum" "multi_krum" "bulyan")
 # repeat_times=(1)
-defense_methods=("fedavg" "krum" "multi_krum") 
-attack_types=("lwp") 
-poison_ratios=(0.6)
+defense_methods=("bulyan") 
+attack_types=("addSent" "lwp") 
+poison_ratios=(0.5)
 learning_rates=(1e-4)
 
 # Loop through each defense method
@@ -21,7 +21,7 @@ do
           echo "Running with attack: $attack_type, poison ratio: $poison_ratio, lr: $learning_rate"
           python main.py \
             --model distilbert \
-            --epochs 5 \
+            --epochs 10 \
             --local_ep 10 \
             --local_bs 32 \
             --dataset agnews \
@@ -29,7 +29,7 @@ do
             --num_classes 2 \
             --num_users 30 \
             --frac 0.4 \
-            --attackers 0.5 \
+            --attackers 0.3 \
             --attack_type $attack_type \
             --lr $learning_rate \
             --optimizer adamw \
