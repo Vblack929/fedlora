@@ -27,7 +27,7 @@ from options import args_parser
 from update import LocalUpdate
 from utils import average_weights, exp_details, load_params
 from defense import krum, multi_krum, detect_anomalies_by_distance, bulyan, detect_outliers_from_weights, trimmed_mean, detect_outliers_with_silhouette
-from defense_utils import extract_lora_matrices, compute_wa_distances, compute_weighted_distance_with_attention
+from defense_utils import extract_lora_qs, extract_lora_vals, compute_wa_distances, compute_weighted_distance_with_attention
 from pathlib import Path
 from datetime import datetime
 
@@ -143,7 +143,7 @@ def main():
     test_data = load_jsonl(test_path)
     
     sample_size = 6000
-    clean_train_dataset = Dataset.from_list(train_data).shuffle(seed=42).select(range(sample_size))
+    clean_train_dataset = Dataset.from_list(train_data).shuffle().select(range(sample_size))
     if args.use_test_set:
         clean_test_dataset = Dataset.from_list(test_data)
     else:
@@ -229,7 +229,7 @@ def main():
         elif args.model == 'distilbert':
             num_layers = 6
         model_name = args.model
-        _, clean_B_matrices = extract_lora_matrices(model_name, [global_model.state_dict()], num_layers)
+        _, clean_B_matrices = extract_lora_qs(model_name, [global_model.state_dict()], num_layers)
     
     num_attackers = int(args.num_users * args.attackers)
     BD_users = np.random.choice(
@@ -248,7 +248,8 @@ def main():
         user_indices.append(indices)
     
     time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_path = f"exp/{args.model}_{args.attack_type}_{args.defense}_{args.dataset}_{time_str}"
+    # save_path = f"exp/{args.model}_{args.attack_type}_{args.defense}_{args.dataset}_{time_str}"
+    save_path = f"appendix/{args.model}_{args.dataset}_{args.attack_type}_{args.defense}_{args.poison_ratio}_{args.attackers}"
     os.makedirs(save_path, exist_ok=True)
     # record the acc and asr before training
     acc = [test_acc]
@@ -256,9 +257,11 @@ def main():
     with open(f"{save_path}/results.txt", "w") as f:
         f.write(f"{test_acc:.4f} {test_asr:.4f}\n")
         
+    record = {}
+        
     for epoch in tqdm(range(args.epochs)):
         local_weights, local_losses = [], []
-        record = {}
+        record[f"Epoch {epoch}"] = {}
         print(f"Epoch {epoch} : Training...")
         m = max(int(args.frac * args.num_users), 1)
         idx_users = np.random.choice(range(args.num_users), m, replace=False)
@@ -286,17 +289,17 @@ def main():
             w, loss = local_update.update_weights(local_model, epoch)
             local_weights.append(w)
             local_losses.append(loss)
-            record[f"Client {idx}"] = {}
-            record[f"Client {idx}"]["loss"] = loss
-            record[f"Client {idx}"]["weights"] = w.detach().cpu().numpy() if isinstance(w, torch.Tensor) else w
-            record[f"Client {idx}"]["is_poisoned"] = True if idx in BD_users else False
+        #     record[f"Epoch {epoch}"][f"Client {idx}"] = {}
+        #     record[f"Epoch {epoch}"][f"Client {idx}"]["loss"] = loss.detach().cpu().numpy() if isinstance(loss, torch.Tensor) else loss
+        #     record[f"Epoch {epoch}"][f"Client {idx}"]["weights"] = w.detach().cpu().numpy() if isinstance(w, torch.Tensor) else w
+        #     record[f"Epoch {epoch}"][f"Client {idx}"]["is_poisoned"] = True if idx in BD_users else False
             
         
         
-        # Save client weights for later analysis
-        client_weights_path = f"{save_path}/client_weights.pkl"
-        with open(client_weights_path, 'wb') as f:
-            pickle.dump(record, f)
+        # # Save client weights for later analysis
+        # client_weights_path = f"{save_path}/client_weights.pkl"
+        # with open(client_weights_path, 'wb') as f:
+        #     pickle.dump(record, f)
         
         # defense
         if args.defense == "fedavg":
@@ -316,7 +319,7 @@ def main():
                 num_layers = 12
             elif args.model == 'distilbert':
                 num_layers = 6
-            _, B_matrices = extract_lora_matrices(model_name, local_weights, num_layers)
+            _, B_matrices = extract_lora_qs(model_name, local_weights, num_layers)
             wa_distances = compute_wa_distances(clean_B_matrices=clean_B_matrices, client_B_matrices=B_matrices)
             layer_variances = {layer: np.var(wa_distances[layer]) for layer in wa_distances.keys()}
             weighted_distances = compute_weighted_distance_with_attention(wa_distances, layer_variances)
@@ -342,13 +345,13 @@ def main():
             f.write(f"{asr[i]:.4f}, ")
         f.write("\n")
     
-    result_path = "experiments.txt"
-    with open(result_path, "a") as f:
-        f.write(f"\n{'-'*80}\n")
-        f.write(f"| {'Model':^10} | {'Attack':^10} | {'Defense':^12} | {'Attackers':^10} | {'Poison Ratio':^12} | {'lr':^10} | {'ASR':^8} | {'ACC':^8} | {'Dataset':^8} |\n")
-        f.write(f"|{'-'*12}|{'-'*12}|{'-'*14}|{'-'*12}|{'-'*14}|{'-'*10}|{'-'*10}|{'-'*10}|{'-'*10}|\n")
-        f.write(f"| {args.model:^10} | {args.attack_type:^10} | {args.defense:^12} | {args.attackers:^10.2f} | {args.poison_ratio:^12.2f} | {args.lr:^10.2e} | {test_asr:^8.4f} | {test_acc:^8.4f} | {args.dataset:^10} |\n")
-        f.write(f"{'-'*80}\n")
+    # result_path = "experiments.txt"
+    # with open(result_path, "a") as f:
+    #     f.write(f"\n{'-'*80}\n")
+    #     f.write(f"| {'Model':^10} | {'Attack':^10} | {'Defense':^12} | {'Attackers':^10} | {'Poison Ratio':^12} | {'lr':^10} | {'ASR':^8} | {'ACC':^8} | {'Dataset':^8} |\n")
+    #     f.write(f"|{'-'*12}|{'-'*12}|{'-'*14}|{'-'*12}|{'-'*14}|{'-'*10}|{'-'*10}|{'-'*10}|{'-'*10}|\n")
+    #     f.write(f"| {args.model:^10} | {args.attack_type:^10} | {args.defense:^12} | {args.attackers:^10.2f} | {args.poison_ratio:^12.2f} | {args.lr:^10.2e} | {test_asr:^8.4f} | {test_acc:^8.4f} | {args.dataset:^10} |\n")
+    #     f.write(f"{'-'*80}\n")
 
 if __name__ == '__main__':
     main()
