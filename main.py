@@ -21,7 +21,7 @@ from transformers import (
 )
 from torch.utils.data import DataLoader
 from torch.nn import CrossEntropyLoss
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig, get_peft_model, PeftModel
 from datasets import Dataset
 from options import args_parser
 from update import LocalUpdate
@@ -119,6 +119,11 @@ def main():
     logger = SummaryWriter('logs')
     args = args_parser()
     
+    # set a random seed
+    seed = random.randint(0, 1000)
+    random.seed(seed)
+    np.random.seed(seed)
+    
     if torch.cuda.is_available():
         device = torch.device('cuda')
         # running on colab  
@@ -135,6 +140,7 @@ def main():
         model_path = f"{path_prefix}/unpretrained_new/{args.model}_{args.dataset}"
     num_labels = 2 if args.dataset == 'sst2' else 4
     args.device = device
+    
     
     train_path = f'data/{args.dataset}_train.jsonl'
     test_path = f'data/{args.dataset}_test.jsonl'
@@ -193,16 +199,18 @@ def main():
     tokenized_asr_testset = tokenize_dataset(tokenizer, asr_testset, args.dataset)
         
     global_model.to(device)
+    
+    rank = args.rank
     if args.model == 'bert':
         lora_config = LoraConfig(
-            r=16,
+            r=rank,
             lora_alpha=32,
             lora_dropout=0.01,
             task_type="SEQ_CLS",
         )
     elif args.model == 'distilbert':
         lora_config = LoraConfig(
-            r=16,
+            r=rank,
             lora_alpha=16,
             target_modules=["q_lin", "v_lin"],
             lora_dropout=0.1,
@@ -211,12 +219,14 @@ def main():
         )
     elif args.model == 'roberta':
         lora_config = LoraConfig(
-            r=16,
+            r=rank,
             lora_alpha=16,
             target_modules=["query", "key", "value"],
             lora_dropout=0.1,
         )
-    global_model = get_peft_model(global_model, lora_config)
+    global_model = PeftModel.from_pretrained(global_model, 
+                                             f"models/{args.model}_{args.dataset}",
+                                             is_trainable=True)
     test_acc, test_loss = test_inference(global_model, tokenized_acc_testset)
     test_asr, _ = test_inference(global_model, tokenized_asr_testset)
     print("\n Results before federated fine tuning: ")
@@ -249,7 +259,7 @@ def main():
     
     time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     # save_path = f"exp/{args.model}_{args.attack_type}_{args.defense}_{args.dataset}_{time_str}"
-    save_path = f"appendix/{args.model}_{args.dataset}_{args.attack_type}_{args.defense}_{args.poison_ratio}_{args.attackers}"
+    save_path = f"pilot/{args.model}_{args.dataset}_{args.attack_type}_{args.defense}_{args.poison_ratio}_{args.attackers}"
     os.makedirs(save_path, exist_ok=True)
     # record the acc and asr before training
     acc = [test_acc]
@@ -289,17 +299,21 @@ def main():
             w, loss = local_update.update_weights(local_model, epoch)
             local_weights.append(w)
             local_losses.append(loss)
-        #     record[f"Epoch {epoch}"][f"Client {idx}"] = {}
-        #     record[f"Epoch {epoch}"][f"Client {idx}"]["loss"] = loss.detach().cpu().numpy() if isinstance(loss, torch.Tensor) else loss
-        #     record[f"Epoch {epoch}"][f"Client {idx}"]["weights"] = w.detach().cpu().numpy() if isinstance(w, torch.Tensor) else w
-        #     record[f"Epoch {epoch}"][f"Client {idx}"]["is_poisoned"] = True if idx in BD_users else False
+            lora_params = {}
+            # for k, v in local_model.state_dict().items():
+            #     if 'lora' in k:
+            #         lora_params[k] = v
+            record[f"Epoch {epoch}"][f"Client {idx}"] = {}
+            record[f"Epoch {epoch}"][f"Client {idx}"]["loss"] = loss.detach().cpu().numpy() if isinstance(loss, torch.Tensor) else loss
+            record[f"Epoch {epoch}"][f"Client {idx}"]["weights"] = w.detach().cpu().numpy() if isinstance(w, torch.Tensor) else w
+            record[f"Epoch {epoch}"][f"Client {idx}"]["is_poisoned"] = True if idx in BD_users else False
             
         
         
-        # # Save client weights for later analysis
-        # client_weights_path = f"{save_path}/client_weights.pkl"
-        # with open(client_weights_path, 'wb') as f:
-        #     pickle.dump(record, f)
+        # Save client weights for later analysis
+        client_weights_path = f"{save_path}/client_weights.pkl"
+        with open(client_weights_path, 'wb') as f:
+            pickle.dump(record, f)
         
         # defense
         if args.defense == "fedavg":

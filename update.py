@@ -19,6 +19,7 @@ from transformers import (
     DistilBertForSequenceClassification, 
     BertForSequenceClassification, 
     RobertaTokenizer, RobertaForSequenceClassification)
+from defense_utils import extract_lora_qs, extract_lora_vals
 import json
 import os
 
@@ -209,6 +210,43 @@ class LocalUpdate(object):
 
         avg_loss = sum(epoch_losses) / len(epoch_losses) if epoch_losses else 0
         return param_to_return, avg_loss
+    
+    # def update_weights(self, model, global_round):
+    #     # Set mode to train model
+    #     model.train()
+
+    #     training_args = TrainingArguments(
+    #         output_dir="./results",
+    #         num_train_epochs=self.args.epochs,
+    #         learning_rate=1e-4,
+    #         per_device_train_batch_size=self.args.local_bs,
+    #         per_device_eval_batch_size=self.args.local_bs,
+    #         logging_dir="./logs",
+    #         logging_steps=10,
+    #         eval_strategy="epoch",
+    #         save_strategy="epoch",
+    #         load_best_model_at_end=True,
+    #         report_to="none",  # Set to 'none' to disable logging to any external service
+    #     )
+    #     trainer = Trainer(
+    #         model=model,
+    #         args=training_args,
+    #         train_dataset=self.trainloader,
+    #         eval_dataset=self.valloader,
+    #     )
+        
+    #     if self.args.verbose:
+    #         print('| Global Round : {} | Local # {} \tMalicious: {:}'.format(
+    #                     global_round, self.local_id, self.poison_ratio > 0.0))
+    #     train_output = trainer.train()
+            
+    #     param_to_return = {}
+    #     for name, param in model.named_parameters():
+    #         if param.requires_grad:
+    #             param_to_return[name] = param.data
+                
+    #     return param_to_return, train_output.training_loss
+
 
 
 def test_inference(args, model, test_dataset):
@@ -251,12 +289,13 @@ def test_inference(args, model, test_dataset):
     return accuracy, loss
 
 def pretrain_global_model(model_type, train_dataset, test_dataset, model_config=None, batch_size=32, num_epochs=5, learning_rate=2e-5, 
-                        optimizer_type='adamw', use_gpu=True, verbose=True, output_dir=None):
+                        optimizer_type='adamw', use_gpu=True, verbose=True, output_dir=None, lora_rank=16):
     """Pretrains the global model on the training dataset before federated learning."""
     # Determine the dataset type and text field
     dataset = 'sst2' if 'sentence' in train_dataset.column_names else 'agnews'
     text_field_key = 'text' if dataset == 'agnews' else 'sentence'
     
+    num_layers = 12 if model_type == 'bert' or model_type == 'roberta' else 6 if model_type == 'distilbert' else 12
     # Initialize model and tokenizer
     if model_config is not None:
         model = model_config
@@ -279,7 +318,30 @@ def pretrain_global_model(model_type, train_dataset, test_dataset, model_config=
             tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
             num_labels = 4 if dataset == 'agnews' else 2
             model = RobertaForSequenceClassification.from_pretrained('roberta-base', num_labels=num_labels)
-    
+    if model_type == 'bert':
+        lora_config = LoraConfig(
+            r=lora_rank,
+            lora_alpha=32,
+            lora_dropout=0.01,
+            task_type="SEQ_CLS",
+        )
+    elif model_type == 'distilbert':
+        lora_config = LoraConfig(
+            r=lora_rank,
+            lora_alpha=lora_rank,
+            target_modules=["q_lin", "v_lin"],
+            lora_dropout=0.1,
+            bias="none",
+            task_type="SEQ_CLS"
+        )
+    elif model_type == 'roberta':
+        lora_config = LoraConfig(
+            r=lora_rank,
+            lora_alpha=lora_rank,
+            target_modules=["query", "key", "value"],
+            lora_dropout=0.1,
+        )
+    model = get_peft_model(model, lora_config)
     # Define tokenization function
     def tokenize_function(examples):
         return tokenizer(
@@ -434,11 +496,6 @@ def pretrain_global_model(model_type, train_dataset, test_dataset, model_config=
     accuracy = correct / total
     
     print(f'| Pretraining Complete | Accuracy: {accuracy:.4f} | Loss: {avg_loss:.4f}')
-    
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
-        model.save_pretrained(output_dir)
-        tokenizer.save_pretrained(output_dir)
     return model
     
     
@@ -447,10 +504,10 @@ class Args:
 
 if __name__ == "__main__":
     # Choose the model type ('bert', 'distilbert', or 'roberta')
-    model_type = "roberta"  # Change this to try different models
+    model_type = "distilbert"  # Change this to try different models
     dataset_name = "sst2"
     num_labels = 2 if dataset_name == "sst2" else 4
-    lr = 2e-5
+    lr = 1e-4
     
     def load_jsonl(path):
         data = []
@@ -470,7 +527,7 @@ if __name__ == "__main__":
     train_dataset = load_jsonl(train_path)
     test_dataset = load_jsonl(test_path)
     
-    train_dataset = Dataset.from_list(train_dataset)
+    train_dataset = Dataset.from_list(train_dataset)[:3000]
     test_dataset = Dataset.from_list(test_dataset)
     
     if isinstance(train_dataset, dict):
@@ -500,6 +557,7 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Unsupported model type: {model_type}. Choose from 'bert', 'distilbert', or 'roberta'")
     
+    lora_rank = 16
     # Train the model
     trained_model = pretrain_global_model(
         model_type=model_type,
@@ -507,12 +565,13 @@ if __name__ == "__main__":
         test_dataset=test_dataset,
         model_config=model_config,
         batch_size=32,
-        num_epochs=1,
-        learning_rate=lr
+        num_epochs=10,
+        learning_rate=lr,
+        lora_rank=lora_rank
     )
     
     # Save the trained model
-    output_dir = f'save/pretrained/{model_type}_{dataset_name}'
+    output_dir = f'models/{model_type}_{dataset_name}_lora_rank_{lora_rank}'
     os.makedirs(output_dir, exist_ok=True)
     trained_model.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
