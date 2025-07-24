@@ -557,25 +557,26 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Unsupported model type: {model_type}. Choose from 'bert', 'distilbert', or 'roberta'")
     
-    lora_rank = 16
+    lora_rank = [4]
     # Train the model
-    trained_model = pretrain_global_model(
-        model_type=model_type,
-        train_dataset=train_dataset,
-        test_dataset=test_dataset,
-        model_config=model_config,
-        batch_size=32,
-        num_epochs=10,
-        learning_rate=lr,
-        lora_rank=lora_rank
-    )
+    for r in lora_rank:
+        trained_model = pretrain_global_model(
+            model_type=model_type,
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
+            model_config=model_config,
+            batch_size=32,
+            num_epochs=10,
+            learning_rate=lr,
+            lora_rank=r
+        )
+        
+        # Save the trained model
+        output_dir = f'models/{model_type}_{dataset_name}_{r}'
+        os.makedirs(output_dir, exist_ok=True)
+        trained_model.save_pretrained(output_dir)
+        tokenizer.save_pretrained(output_dir)
     
-    # Save the trained model
-    output_dir = f'models/{model_type}_{dataset_name}_lora_rank_{lora_rank}'
-    os.makedirs(output_dir, exist_ok=True)
-    trained_model.save_pretrained(output_dir)
-    tokenizer.save_pretrained(output_dir)
-    
-    print(f"Model saved to {output_dir}")
+        print(f"Model saved to {output_dir}")
     
     

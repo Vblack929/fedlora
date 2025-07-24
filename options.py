@@ -27,6 +27,7 @@ def args_parser():
     parser.add_argument('--attack_type', type=str, default='addWord', help='addWord, addSent')
     parser.add_argument('--defense', type=str, default='krum')
     parser.add_argument('--device', type=str, default='cuda', help='cuda, mps, cpu')
+    parser.add_argument('--rank', type=int, default=16, help='lora rank')
 
     # model arguments
     # parser.add_argument('--same_model', action='store_true', help='use same model in each client')

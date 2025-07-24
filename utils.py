@@ -153,7 +153,10 @@ def load_params(model: torch.nn.Module, w: dict):
 
     for name, param in w.items():
         if name in model.state_dict():
-            model.state_dict()[name].copy_(param)
+            if not isinstance(param, torch.Tensor):
+                model.state_dict()[name].copy_(torch.tensor(param))
+            else:
+                model.state_dict()[name].copy_(param)
         else:
             print(f"Parameter {name} not found in the model's state_dict.")
     return model
